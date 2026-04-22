@@ -1,0 +1,20 @@
+{
+  "name": "expieriments-doppler",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.10",
+    "@types/three": "^0.184.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.0.9"
+  },
+  "dependencies": {
+    "three": "^0.184.0"
+  }
+}
