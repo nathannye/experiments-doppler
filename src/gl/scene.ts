@@ -32,7 +32,7 @@ class Scene extends ThreeScene {
 		const rotationY = t
 		const rotationZ = Math.sin(t)
 
-		const x = Math.sin(t / 4) * 10
+		const x = Math.sin(t / 4) * 4
 		const y = Math.cos(t)
 		const z = Math.sin(t)
 
@@ -51,6 +51,7 @@ class Scene extends ThreeScene {
 			z,
 			rotationX,
 			rotationY,
+			time,
 		)
 	}
 }

@@ -1,5 +1,8 @@
+import { Vector3 } from 'three'
+import camera from '../gl/camera'
 import { onClick } from '../utils/events'
 import { getAudioBuffer } from '../utils/file'
+import { clamp, lerp } from '../utils/math'
 
 class Doppler {
 	public hasPlayed = false
@@ -10,11 +13,15 @@ class Doppler {
 	public source: AudioBufferSourceNode
 	public gain: GainNode
 	public panner: PannerNode
+	public stereoPanner: StereoPannerNode
 	public isInitialized = false
+	public lerpValue = 0.1
+	public listenerPos: Vector3
 
 	constructor() {
 		this.ctx = new AudioContext()
 		this.btn = document.getElementById('play')
+		this.listenerPos = camera.position.clone()
 
 		this.init().then(() => {
 			this.isInitialized = true
@@ -44,10 +51,11 @@ class Doppler {
 
 		this.gain = this.ctx.createGain()
 		this.panner = this.ctx.createPanner()
+		this.stereoPanner = this.ctx.createStereoPanner()
 
 		this.source = this.createSource()
-		this.source.connect(this.panner)
-		this.panner.connect(this.gain)
+		this.source.connect(this.stereoPanner)
+		this.stereoPanner.connect(this.gain)
 		this.gain.connect(this.ctx.destination)
 	}
 
@@ -65,6 +73,7 @@ class Doppler {
 		z: number,
 		rotationX: number,
 		rotationY: number,
+		time: number,
 	) {
 		if (!this.isInitialized) return
 
@@ -72,13 +81,22 @@ class Doppler {
 
 		const safeDistance = Math.max(distance, 0.1)
 		this.gain.gain.value = 1 / (safeDistance * safeDistance)
-		this.panner.positionX.value = x
-		this.panner.positionY.value = y
-		this.panner.positionZ.value = z
 
-		this.panner.orientationX.value = rotationX
-		this.panner.orientationY.value = rotationY
-		this.panner.orientationZ.value = 0
+		const sourcePos = new Vector3(x, y, z)
+		const dir = sourcePos.clone().sub(this.listenerPos).normalize()
+		const right = sourcePos.clone().applyQuaternion(camera.quaternion)
+		const pan = clamp(-1, 1, right.dot(dir))
+
+		const forward = sourcePos.clone().applyQuaternion(camera.quaternion)
+		const frontness = Math.abs(dir.dot(forward)) // 0 = side, 1 = directly front/back
+
+		const dampenedPan = clamp(-1, 1, pan * (1 - frontness))
+
+		this.stereoPanner.pan.value = lerp(
+			dampenedPan,
+			this.stereoPanner.pan.value,
+			this.lerpValue,
+		)
 	}
 }
 
