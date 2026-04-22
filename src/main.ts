@@ -1,9 +1,9 @@
+import { Doppler } from './audio-processing/doppler'
 import Camera from './gl/camera'
 import Renderer from './gl/renderer'
 import Scene from './gl/scene'
 import { resizeScreen } from './gl/screen'
 import './styles/style.css'
-import { screen } from './gl/screen'
 import { Raf } from './subscribers/raf'
 import { Resizer } from './subscribers/resizer'
 
@@ -11,6 +11,7 @@ export default class App {
 	constructor() {
 		this.init()
 		this.resize()
+		this.audio = new Doppler()
 	}
 
 	resize() {
@@ -26,7 +27,7 @@ export default class App {
 
 	render(time: number) {
 		Renderer.render(Scene, Camera)
-		Scene.render(time)
+		Scene.render(time * 2.4)
 	}
 }
 
