@@ -9,6 +9,8 @@ import { distanceBetween } from '../utils/distance'
 import camera from './camera'
 
 class Scene extends ThreeScene {
+	public mesh: Mesh
+
 	constructor() {
 		super()
 		this.init()
@@ -26,15 +28,30 @@ class Scene extends ThreeScene {
 
 	render(time: number) {
 		const t = time * 0.001
-		this.mesh.rotation.x = Math.sin(t)
-		this.mesh.rotation.y = t
-		this.mesh.rotation.z = Math.sin(t)
+		const rotationX = Math.sin(t)
+		const rotationY = t
+		const rotationZ = Math.sin(t)
 
-		this.mesh.position.x = Math.sin(t)
-		// this.mesh.position.y = Math.cos(t)
-		this.mesh.position.z = Math.sin(t)
+		const x = Math.sin(t / 4) * 10
+		const y = Math.cos(t)
+		const z = Math.sin(t)
 
-		doppler.update(distanceBetween(camera.position, this.mesh.position))
+		this.mesh.rotation.x = rotationX
+		this.mesh.rotation.y = rotationY
+		this.mesh.rotation.z = rotationZ
+
+		this.mesh.position.x = x
+		this.mesh.position.y = y
+		this.mesh.position.z = z
+
+		doppler.update(
+			distanceBetween(camera.position, this.mesh.position),
+			x,
+			y,
+			z,
+			rotationX,
+			rotationY,
+		)
 	}
 }
 
