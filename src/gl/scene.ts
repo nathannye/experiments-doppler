@@ -4,11 +4,13 @@ import {
 	MeshBasicMaterial,
 	Scene as ThreeScene,
 } from 'three'
+import doppler from '../audio-processing/doppler'
+import { distanceBetween } from '../utils/distance'
+import camera from './camera'
 
 class Scene extends ThreeScene {
 	constructor() {
 		super()
-
 		this.init()
 	}
 
@@ -23,8 +25,16 @@ class Scene extends ThreeScene {
 	}
 
 	render(time: number) {
-		this.mesh.rotation.x = time * 0.001
-		this.mesh.rotation.y = time * 0.001
+		const t = time * 0.001
+		this.mesh.rotation.x = Math.sin(t)
+		this.mesh.rotation.y = t
+		this.mesh.rotation.z = Math.sin(t)
+
+		this.mesh.position.x = Math.sin(t)
+		// this.mesh.position.y = Math.cos(t)
+		this.mesh.position.z = Math.sin(t)
+
+		doppler.update(distanceBetween(camera.position, this.mesh.position))
 	}
 }
 

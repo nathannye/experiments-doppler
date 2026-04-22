@@ -1,20 +1,28 @@
 import { onClick } from '../utils/events'
 import { getAudioBuffer } from '../utils/file'
 
-export class Doppler {
+class Doppler {
+	public hasPlayed = false
+	public distanceFromViewer = 0
+	public ctx: AudioContext
+	public btn: HTMLElement
+	public source: AudioBufferSourceNode
+	public gain: GainNode
+
 	constructor() {
-		this.hasPlayed = false
 		this.ctx = new AudioContext()
 		this.btn = document.getElementById('play')
 
-		this.init()
-		onClick(this.btn, () => {
-			this.toggle()
+		this.distanceFromViewer = 0
+
+		this.init().then(() => {
+			onClick(this.btn, () => {
+				this.toggle()
+			})
 		})
 	}
 
 	toggle() {
-		console.log(this.source)
 		if (this.ctx.state === 'running') {
 			this.ctx.suspend()
 			this.source.stop()
@@ -41,4 +49,13 @@ export class Doppler {
 		this.source.connect(this.gain)
 		this.gain.connect(this.ctx.destination)
 	}
+
+	update(distance: number) {
+		console.log(distance)
+		this.distanceFromViewer = distance
+
+		this.gain.gain.value = 1 / (distance * distance)
+	}
 }
+
+export default new Doppler()
