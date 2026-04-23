@@ -1,10 +1,9 @@
 import { Quaternion, Scene as ThreeScene, Vector3 } from 'three'
 import { AudioEngine } from '../audio/engine'
 import { SpatialSource } from '../audio/source'
-import { ASSETS } from '../constants'
 import { onClick } from '../utils/events'
 import camera from './camera'
-import { AssetLoader } from './loader'
+import loader from './loader'
 import { TrackedObject } from './tracked-object'
 
 class Scene extends ThreeScene {
@@ -21,9 +20,10 @@ class Scene extends ThreeScene {
 	constructor() {
 		super()
 
-		new AssetLoader(ASSETS)
-
+		// loader.start().then(() => {
+		// 	console.log('assets loaded')
 		this.init()
+		// })
 	}
 
 	init() {

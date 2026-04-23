@@ -69,6 +69,102 @@ It keeps asking: "Where is the source, how fast is it moving, how far is it, and
 - `reverb.wetByDistance`  
   Pushes more reverb feel as things get farther away (less direct, more space).
 
+### Reverb impulse profile URLs (`impulseUrlOverride`)
+
+You can point `impulseUrlOverride` to any audio file URL your app can fetch and decode.
+In practice, these are usually short room impulse responses (`.wav` is most common).
+
+Where to host IR files:
+
+- Local app assets (recommended): put files in `public/ir/` and reference with root-relative URLs.
+- Versioned static assets: `https://cdn.yourdomain.com/audio/ir/hall-01.wav`
+- Third-party hosted files (if CORS allows it): any HTTPS URL your client can fetch.
+
+Public IR resources:
+
+- OpenAIR (University of York): https://www.openair.hosted.york.ac.uk/
+- OpenAIR IR browser (download packs): https://www.openair.hosted.york.ac.uk/?page_id=36
+- EchoThief library: https://www.echothief.com/
+- Chatham Dockyard IR set (Sonic Palimpsest): https://research.kent.ac.uk/sonic-palimpsest/impulse-responses/
+
+Tip: even with public libraries, download the `.wav` you want and serve it from your own `public/ir/` folder.
+That avoids CORS issues and gives stable URLs in production.
+
+Examples:
+
+```ts
+reverb: {
+  enabled: true,
+  wet: 0.22,
+  impulseUrlOverride: '/ir/small-room.wav',
+}
+```
+
+```ts
+reverb: {
+  enabled: true,
+  wet: 0.35,
+  impulseUrlOverride: '/ir/concrete-tunnel.wav',
+}
+```
+
+```ts
+reverb: {
+  enabled: true,
+  wet: 0.18,
+  impulseUrlOverride: '/ir/openair-hall.wav',
+}
+```
+
+Quick IR picking guide:
+
+- Small room IR: tighter, closer, more intimate
+- Hall IR: wider, smoother, cinematic tail
+- Tunnel/garage IR: strong reflections, metallic/boxy character
+- Outdoor/open IR: very subtle, short tail (or almost dry)
+
+### Air absorption (generic, works for any source)
+
+Real air eats highs over distance.  
+That "far away" softness is not just volume drop - it is also less top-end detail hitting your ears.
+
+- `airAbsorption.enabled`  
+  Turns on distance-driven high-frequency rolloff.
+
+- `airAbsorption.minDistance`  
+  Distance where the rolloff starts.
+
+- `airAbsorption.maxDistance`  
+  Distance where max muffling is reached.
+
+- `airAbsorption.maxCutoffHz`  
+  Near-field cutoff (usually high, close to full bandwidth).
+
+- `airAbsorption.minCutoffHz`  
+  Far-field cutoff (lower = softer/more muffled at range).
+
+- `airAbsorption.curve`  
+  Shapes how fast the tone darkens as distance grows.  
+  - `> 1`: keeps near/mid clearer longer, then darkens later  
+  - `< 1`: starts darkening earlier
+
+- `airAbsorption.smoothingSec`  
+  Smooths cutoff changes so motion sounds natural instead of twitchy.
+
+Example:
+
+```ts
+airAbsorption: {
+  enabled: true,
+  minDistance: 2,
+  maxDistance: 80,
+  minCutoffHz: 1800,
+  maxCutoffHz: 18000,
+  curve: 1.2,
+  smoothingSec: 0.12,
+}
+```
+
 ### Layers: why they sound more real
 
 Layers let different parts of the sound react differently, like in real life:
