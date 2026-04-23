@@ -1,8 +1,10 @@
 import { Quaternion, Scene as ThreeScene, Vector3 } from 'three'
 import { AudioEngine } from '../audio/engine'
 import { SpatialSource } from '../audio/source'
+import { ASSETS } from '../constants'
 import { onClick } from '../utils/events'
 import camera from './camera'
+import { AssetLoader } from './loader'
 import { TrackedObject } from './tracked-object'
 
 class Scene extends ThreeScene {
@@ -18,6 +20,9 @@ class Scene extends ThreeScene {
 
 	constructor() {
 		super()
+
+		new AssetLoader(ASSETS)
+
 		this.init()
 	}
 
@@ -55,11 +60,20 @@ class Scene extends ThreeScene {
 				wet: 0.35,
 				wetByDistance: true,
 			},
+			airAbsorption: {
+				enabled: true,
+				minDistance: 2,
+				maxDistance: 80,
+				minCutoffHz: 1800,
+				maxCutoffHz: 18000,
+				curve: 1.2,
+				smoothingSec: 0.12,
+			},
 			layers: [
 				{
 					id: 'low',
 					url: '/audio/turbine.mp3',
-					gain: 0.7,
+					gain: 1.2,
 					filter: {
 						type: 'lowpass',
 						frequency: 650,
@@ -73,7 +87,7 @@ class Scene extends ThreeScene {
 					gain: 0.6,
 					filter: {
 						type: 'bandpass',
-						frequency: 1800,
+						frequency: 1100,
 						Q: 0.7,
 					},
 					dopplerDepth: 1,
@@ -82,12 +96,12 @@ class Scene extends ThreeScene {
 				{
 					id: 'high',
 					url: '/audio/turbine.mp3',
-					gain: 0.35,
+					gain: 2,
 					filter: {
 						type: 'highpass',
 						frequency: 3400,
 					},
-					dopplerDepth: 1.2,
+					dopplerDepth: 1.8,
 					distanceDepth: 1.2,
 				},
 			],
@@ -107,21 +121,11 @@ class Scene extends ThreeScene {
 	render(time: number) {
 		const t = time * 0.001
 
-		const rotationX = Math.sin(t)
-		const rotationY = t
-		const rotationZ = Math.sin(t)
+		const x = Math.sin(t / 2) * 10
+		const z = Math.sin(t) * -3
 
-		const x = Math.sin(t / 4) * 4
-		const y = Math.cos(t)
-		const z = Math.sin(t)
-
-		// this.trackedObject.rotation.x = rotationX
-		// this.trackedObject.rotation.y = rotationY
-		// this.trackedObject.rotation.z = rotationZ
-
-		// this.trackedObject.position.x = x
-		// this.trackedObject.position.y = y
-		// this.trackedObject.position.z = z
+		this.trackedObject.position.x = x
+		this.trackedObject.position.z = z
 
 		this.trackedObject.updateVelocity(time)
 		this.jetSource.setKinematics({

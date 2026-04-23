@@ -1,12 +1,14 @@
 import { Vector3 } from 'three'
 import { getAudioBuffer } from '../utils/file'
 import { clamp, lerp } from '../utils/math'
+import { getAirAbsorptionCutoff } from './effects/air-absorption'
 import { getDistanceGain } from './effects/distance'
 import { getDopplerPlaybackRate } from './effects/doppler'
 import { getStereoPan } from './effects/pan'
 import { getReverbWetGain } from './effects/reverb-send'
 import type { AudioEngine } from './engine'
 import type {
+	AirAbsorptionOptions,
 	AudioEngineTick,
 	DistanceOptions,
 	LayerConfig,
@@ -42,6 +44,7 @@ export class SpatialSource {
 	private stereoPanner: StereoPannerNode | null = null
 	private spatialPanner: PannerNode | null = null
 	private distanceGain: GainNode
+	private airAbsorptionFilter: BiquadFilterNode
 	private dryGain: GainNode
 	private wetGain: GainNode
 	private wetOverrideConvolver: ConvolverNode | null = null
@@ -56,10 +59,15 @@ export class SpatialSource {
 		this.mixGain = this.engine.ctx.createGain()
 		this.panMode = options.pan?.mode ?? 'stereo'
 		this.distanceGain = this.engine.ctx.createGain()
+		this.airAbsorptionFilter = this.engine.ctx.createBiquadFilter()
 		this.dryGain = this.engine.ctx.createGain()
 		this.wetGain = this.engine.ctx.createGain()
 
 		this.mixGain.gain.value = options.baseGain ?? 1
+		this.airAbsorptionFilter.type = 'lowpass'
+		this.airAbsorptionFilter.frequency.value = this.getNearCutoff(
+			options.airAbsorption,
+		)
 		this.dryGain.gain.value = 1
 		this.wetGain.gain.value = options.reverb?.enabled
 			? (options.reverb.wet ?? 0.25)
@@ -75,7 +83,8 @@ export class SpatialSource {
 			this.spatialPanner.connect(this.distanceGain)
 		}
 
-		this.distanceGain.connect(this.dryGain)
+		this.distanceGain.connect(this.airAbsorptionFilter)
+		this.airAbsorptionFilter.connect(this.dryGain)
 		this.dryGain.connect(this.engine.masterGain)
 	}
 
@@ -173,6 +182,7 @@ export class SpatialSource {
 		this.stereoPanner?.disconnect()
 		this.spatialPanner?.disconnect()
 		this.distanceGain.disconnect()
+		this.airAbsorptionFilter.disconnect()
 		this.dryGain.disconnect()
 		this.wetGain.disconnect()
 		this.wetOverrideConvolver?.disconnect()
@@ -211,7 +221,7 @@ export class SpatialSource {
 		}
 
 		const wetOverride = this.options.reverb?.impulseUrlOverride
-		this.distanceGain.connect(this.wetGain)
+		this.airAbsorptionFilter.connect(this.wetGain)
 
 		if (!wetOverride) {
 			this.wetGain.connect(this.engine.reverbInput)
@@ -261,6 +271,7 @@ export class SpatialSource {
 		const dopplerOptions = this.options.doppler
 		const panOptions = this.options.pan
 		const reverbOptions = this.options.reverb
+		const airAbsorptionOptions = this.options.airAbsorption
 		const useThreeDPanner = this.panMode !== 'stereo'
 
 		const distance = tick.listener.position.distanceTo(this.sourcePosition)
@@ -281,6 +292,8 @@ export class SpatialSource {
 		} else {
 			this.distanceGain.gain.value = distanceGainValue
 		}
+
+		this.updateAirAbsorption(distance, tick.audioTime, airAbsorptionOptions)
 
 		if (!useThreeDPanner && panOptions?.enabled !== false && this.stereoPanner) {
 			const targetPan = getStereoPan(
@@ -345,6 +358,34 @@ export class SpatialSource {
 		this.wetGain.gain.value = wet
 	}
 
+	private updateAirAbsorption(
+		distance: number,
+		audioTime: number,
+		options?: AirAbsorptionOptions,
+	): void {
+		const targetCutoff =
+			options?.enabled === false
+				? this.getNearCutoff(options)
+				: getAirAbsorptionCutoff(
+						distance,
+						options?.minDistance ?? this.options.distance?.minDistance ?? 1,
+						options?.maxDistance ?? this.options.distance?.maxDistance ?? 100,
+						options?.minCutoffHz ?? 1400,
+						options?.maxCutoffHz ?? 18000,
+						options?.curve ?? 1.25,
+					)
+
+		this.airAbsorptionFilter.frequency.setTargetAtTime(
+			targetCutoff,
+			audioTime,
+			options?.smoothingSec ?? 0.12,
+		)
+	}
+
+	private getNearCutoff(options?: AirAbsorptionOptions): number {
+		return options?.maxCutoffHz ?? 18000
+	}
+
 	private createSpatialPanner(
 		mode: Exclude<PanMode, 'stereo'>,
 		distanceOptions?: DistanceOptions,
@@ -374,8 +415,8 @@ export class SpatialSource {
 		const listener = this.engine.ctx.listener
 		const endTime = tick.audioTime + Math.max(0.01, tick.deltaSec || 1 / 60)
 		this.scratchB
-			.copy(tick.listener.forward)
-			.cross(tick.listener.right)
+			.copy(tick.listener.right)
+			.cross(tick.listener.forward)
 			.normalize()
 
 		if (listener.positionX) {

@@ -7,6 +7,8 @@ export class TrackedObject extends Mesh {
 
 	constructor() {
 		super(new BoxGeometry(1, 1, 1), new MeshBasicMaterial({ color: 0x00ff00 }))
+
+		this.position.z = -4
 	}
 
 	updateVelocity(time: number) {
