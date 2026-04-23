@@ -25,7 +25,7 @@ export default class App {
 
 	render(time: number) {
 		Renderer.render(Scene, Camera)
-		Scene.render(time * 2.4)
+		Scene.render(time)
 	}
 }
 
