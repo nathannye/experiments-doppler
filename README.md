@@ -12,3 +12,7 @@ TLDR: The change of a sounds frequency based on the relative distance to the lis
 Examples:
 - Ambulance passsing by
 - Jet engine passing overhead
+
+
+## The method to the madness
+- panner vs stereoPanner and the mid pitch hop

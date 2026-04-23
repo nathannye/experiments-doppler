@@ -1,15 +1,13 @@
 import {
-	BoxGeometry,
-	Mesh,
-	MeshBasicMaterial,
 	Scene as ThreeScene,
 } from 'three'
 import doppler from '../audio-processing/doppler'
 import { distanceBetween } from '../utils/distance'
 import camera from './camera'
+import { TrackedObject } from './tracked-object'
 
 class Scene extends ThreeScene {
-	public mesh: Mesh
+	trackedObject: TrackedObject
 
 	constructor() {
 		super()
@@ -17,17 +15,13 @@ class Scene extends ThreeScene {
 	}
 
 	init() {
-		const cube = new BoxGeometry(1, 1, 1)
-		const material = new MeshBasicMaterial({ color: 0x00ff00 })
-
-		this.mesh = new Mesh(cube, material)
-		this.mesh.position.set(0, 0, 0)
-
-		this.add(this.mesh)
+		this.trackedObject = new TrackedObject()
+		this.add(this.trackedObject)
 	}
 
 	render(time: number) {
 		const t = time * 0.001
+
 		const rotationX = Math.sin(t)
 		const rotationY = t
 		const rotationZ = Math.sin(t)
@@ -36,22 +30,22 @@ class Scene extends ThreeScene {
 		const y = Math.cos(t)
 		const z = Math.sin(t)
 
-		this.mesh.rotation.x = rotationX
-		this.mesh.rotation.y = rotationY
-		this.mesh.rotation.z = rotationZ
+		this.trackedObject.rotation.x = rotationX
+		this.trackedObject.rotation.y = rotationY
+		this.trackedObject.rotation.z = rotationZ
 
-		this.mesh.position.x = x
-		this.mesh.position.y = y
-		this.mesh.position.z = z
+		this.trackedObject.position.x = x
+		this.trackedObject.position.y = y
+		this.trackedObject.position.z = z
+
+		this.trackedObject.updateVelocity(time)
 
 		doppler.update(
-			distanceBetween(camera.position, this.mesh.position),
+			distanceBetween(camera.position, this.trackedObject.position),
 			x,
 			y,
 			z,
-			rotationX,
-			rotationY,
-			time,
+			this.trackedObject.velocity,
 		)
 	}
 }

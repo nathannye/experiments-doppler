@@ -1,3 +1,5 @@
+import { SPEED_OF_SOUND } from '../constants'
+
 // lerp
 export function lerp(v0: number, v1: number, t: number): number {
 	return v0 * (1 - t) + v1 * t
@@ -26,7 +28,10 @@ export function mod(value: number, x: number): number {
 
 export function symmetricMod(value: number, x: number): number {
 	let modded = mod(value, 2 * x)
-	return modded >= x ? (modded -= 2 * x) : modded
+	if (modded >= x) {
+		modded -= 2 * x
+	}
+	return modded
 }
 
 /** ------------ Angles **/
@@ -50,4 +55,13 @@ export function damp(
 	deltaTime: number,
 ): number {
 	return lerp(current, target, 1 - Math.exp(-lambda * deltaTime))
+}
+
+export const dopplerPlaybackRate = (
+	velocityObserver = 0,
+	velocitySource = 0,
+): number => {
+	const numerator = SPEED_OF_SOUND + velocityObserver
+	const denominator = Math.max(SPEED_OF_SOUND - velocitySource, 1)
+	return numerator / denominator
 }

@@ -2,7 +2,7 @@ import { Vector3 } from 'three'
 import camera from '../gl/camera'
 import { onClick } from '../utils/events'
 import { getAudioBuffer } from '../utils/file'
-import { clamp, lerp } from '../utils/math'
+import { clamp, dopplerPlaybackRate, lerp } from '../utils/math'
 
 class Doppler {
 	public hasPlayed = false
@@ -47,7 +47,7 @@ class Doppler {
 	}
 
 	async init() {
-		this.buffer = await getAudioBuffer('/audio/jet-loop.mp3', this.ctx)
+		this.buffer = await getAudioBuffer('/audio/turbine.mp3', this.ctx)
 
 		this.gain = this.ctx.createGain()
 		this.panner = this.ctx.createPanner()
@@ -66,15 +66,7 @@ class Doppler {
 		return source
 	}
 
-	update(
-		distance: number,
-		x: number,
-		y: number,
-		z: number,
-		rotationX: number,
-		rotationY: number,
-		time: number,
-	) {
+	update(distance: number, x: number, y: number, z: number, velocity: Vector3) {
 		if (!this.isInitialized) return
 
 		this.distanceFromViewer = distance
@@ -82,13 +74,19 @@ class Doppler {
 		const safeDistance = Math.max(distance, 0.1)
 		this.gain.gain.value = 1 / (safeDistance * safeDistance)
 
-		const sourcePos = new Vector3(x, y, z)
-		const dir = sourcePos.clone().sub(this.listenerPos).normalize()
-		const right = sourcePos.clone().applyQuaternion(camera.quaternion)
-		const pan = clamp(-1, 1, right.dot(dir))
+		this.listenerPos.copy(camera.position)
 
-		const forward = sourcePos.clone().applyQuaternion(camera.quaternion)
-		const frontness = Math.abs(dir.dot(forward)) // 0 = side, 1 = directly front/back
+		const sourcePos = new Vector3(x, y, z)
+		const dirToSource = sourcePos.clone().sub(this.listenerPos).normalize()
+		const right = new Vector3(1, 0, 0)
+			.applyQuaternion(camera.quaternion)
+			.normalize()
+		const pan = clamp(-1, 1, dirToSource.dot(right))
+
+		const forward = new Vector3(0, 0, -1)
+			.applyQuaternion(camera.quaternion)
+			.normalize()
+		const frontness = Math.abs(dirToSource.dot(forward)) // 0 = side, 1 = directly front/back
 
 		const dampenedPan = clamp(-1, 1, pan * (1 - frontness))
 
@@ -97,6 +95,18 @@ class Doppler {
 			this.stereoPanner.pan.value,
 			this.lerpValue,
 		)
+
+		const dirToListener = this.listenerPos.clone().sub(sourcePos).normalize()
+		const radialVelocity = velocity.dot(dirToListener)
+		const targetRate = clamp(0.7, 1.3, dopplerPlaybackRate(0, radialVelocity))
+
+		this.source.playbackRate.setTargetAtTime(
+			targetRate,
+			this.ctx.currentTime,
+			0.08,
+		)
+
+		console.log('rate::', this.source.playbackRate.value)
 	}
 }
 
