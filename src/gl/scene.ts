@@ -1,6 +1,8 @@
 import { Quaternion, Scene as ThreeScene, Vector3 } from 'three'
 import { Atmosphere } from '../atmosphere'
 import { AudioEngine } from '../audio/engine'
+import { createEngineCharacterPlugin } from '../audio/plugins/engine-character'
+import { createWhoopPlugin } from '../audio/plugins/whoop'
 import { SpatialSource } from '../audio/source'
 import { onClick } from '../utils/events'
 import camera from './camera'
@@ -110,7 +112,7 @@ class Scene extends ThreeScene {
 
 		this.jetSource = new SpatialSource(this.audioEngine, {
 			loop: true,
-			baseGain: 1,
+			baseGain: 0.72,
 			distance: {
 				enabled: true,
 				model: 'inverse',
@@ -124,29 +126,59 @@ class Scene extends ThreeScene {
 			},
 			doppler: {
 				enabled: true,
-				depth: 2.25,
-				smoothingSec: 0.1,
-				rateClamp: [0.575, 1.5],
+				depth: 1.6,
+				smoothingSec: 0.1875,
+				rateClamp: [0.575, 1.7],
 			},
 			reverb: {
 				enabled: true,
-				wet: 0.3,
-				wetByDistance: true,
+				wet: 1,
+				wetByDistance: false,
 			},
 			airAbsorption: {
 				enabled: true,
 				minDistance: 1,
 				maxDistance: 1000,
-				minCutoffHz: 500,
-				maxCutoffHz: 6000,
+				minCutoffHz: 380,
+				maxCutoffHz: 18000,
 				curve: 2,
 				smoothingSec: 0.1,
 			},
+			plugins: [
+				createWhoopPlugin({
+					layerId: 'lowWhoop',
+					rateHz: 0.15,
+					jitterHz: 0.1,
+					depth: 6,
+					distanceRange: [450, 2600],
+					recedingVelocityRef: 90,
+					minMultiplier: 0.9,
+					maxMultiplier: 1.95,
+				}),
+				createWhoopPlugin({
+					layerId: 'mid',
+					rateHz: 0.1675,
+					jitterHz: 0.1,
+					depth: 4.5,
+					distanceRange: [450, 2200],
+					recedingVelocityRef: 110,
+					minMultiplier: 0.88,
+					maxMultiplier: 1.55,
+				}),
+				createEngineCharacterPlugin({
+					layerId: 'high',
+					distanceRange: [120, 1400],
+					approachVelocityRef: 125,
+					boost: 1.25,
+					minMultiplier: 0.95,
+					maxMultiplier: 2.3,
+				}),
+			],
 			layers: [
 				{
 					id: 'low',
 					url: '/audio/turbine.mp3',
-					gain: 1,
+					gain: 0.82,
 					filter: {
 						type: 'lowpass',
 						frequency: 1000,
@@ -155,9 +187,21 @@ class Scene extends ThreeScene {
 					distanceDepth: 0.6,
 				},
 				{
+					id: 'lowWhoop',
+					url: '/audio/turbine.mp3',
+					gain: 2.3,
+					filter: {
+						type: 'bandpass',
+						frequency: 380,
+						Q: 1.1,
+					},
+					dopplerDepth: 1.25,
+					distanceDepth: 0.45,
+				},
+				{
 					id: 'mid',
 					url: '/audio/turbine.mp3',
-					gain: 2.2,
+					gain: 1.45,
 					filter: {
 						type: 'bandpass',
 						frequency: 2100,
@@ -169,7 +213,7 @@ class Scene extends ThreeScene {
 				{
 					id: 'high',
 					url: '/audio/turbine.mp3',
-					gain: 0.6,
+					gain: 0.42,
 					filter: {
 						type: 'highpass',
 						frequency: 7100,
@@ -194,7 +238,7 @@ class Scene extends ThreeScene {
 	render(time: number) {
 		if (!this.loaded) return
 
-		const orbitPhase = time * 0.00042
+		const orbitPhase = time * 0.00026
 		const orbitRadius = 550
 		this.motionScratch
 			.copy(this.motionOrigin)

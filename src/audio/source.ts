@@ -13,6 +13,9 @@ import type {
 	DistanceOptions,
 	LayerConfig,
 	PanMode,
+	SourcePlugin,
+	SourcePluginLayerState,
+	SourcePluginTickContext,
 	SourceUpdateInput,
 	SpatialSourceOptions,
 } from './types'
@@ -51,10 +54,12 @@ export class SpatialSource {
 	private wetOverrideOut: GainNode | null = null
 
 	private layers: RuntimeLayer[] = []
+	private plugins: SourcePlugin[]
 
 	constructor(engine: AudioEngine, options: SpatialSourceOptions) {
 		this.engine = engine
 		this.options = options
+		this.plugins = options.plugins ?? []
 
 		this.mixGain = this.engine.ctx.createGain()
 		this.panMode = options.pan?.mode ?? 'stereo'
@@ -119,6 +124,12 @@ export class SpatialSource {
 		)
 
 		this.layers = layers
+		for (const plugin of this.plugins) {
+			plugin.onInit?.({
+				audioContext: this.engine.ctx,
+				layerConfigs: layerConfigs,
+			})
+		}
 		this.setupWetRouting()
 		this.loaded = true
 	}
@@ -178,6 +189,9 @@ export class SpatialSource {
 		this.stop()
 		this.unsub?.()
 		this.unsub = null
+		for (const plugin of this.plugins) {
+			plugin.onDispose?.()
+		}
 		this.mixGain.disconnect()
 		this.stereoPanner?.disconnect()
 		this.spatialPanner?.disconnect()
@@ -351,6 +365,24 @@ export class SpatialSource {
 			layer.staticGain.gain.value = layerGain * distanceFactor
 		}
 
+		this.runPlugins({
+			tick,
+			distance,
+			radialVelocity,
+			observerRadialVelocity,
+			distanceGain: distanceGainValue,
+			useThreeDPanner,
+			layers: this.layers.map(
+				(layer): SourcePluginLayerState => ({
+					id: layer.config.id,
+					config: layer.config,
+					gainNode: layer.staticGain,
+					source: layer.source,
+					computedGain: layer.staticGain.gain.value,
+				}),
+			),
+		})
+
 		const wetBase = reverbOptions?.enabled ? (reverbOptions.wet ?? 0.25) : 0
 		const wet = getReverbWetGain(
 			wetBase,
@@ -360,6 +392,12 @@ export class SpatialSource {
 		)
 
 		this.wetGain.gain.value = wet
+	}
+
+	private runPlugins(context: SourcePluginTickContext): void {
+		for (const plugin of this.plugins) {
+			plugin.onTick?.(context)
+		}
 	}
 
 	private updateAirAbsorption(

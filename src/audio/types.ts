@@ -148,6 +148,48 @@ export interface LayerConfig {
 	reverbSend?: number
 }
 
+/** Runtime view of one layer exposed to source plugins during tick processing. */
+export interface SourcePluginLayerState {
+	/** Stable layer id matching LayerConfig.id. */
+	id: string
+	/** Layer authoring config. */
+	config: LayerConfig
+	/** Layer gain node driven by source runtime processing. */
+	gainNode: GainNode
+	/** Buffer source for playback-rate automation or custom modulation. */
+	source: AudioBufferSourceNode | null
+	/** Gain computed by core source processing before plugin adjustments. */
+	computedGain: number
+}
+
+/** Tick payload delivered to source plugins after core spatial/Doppler updates. */
+export interface SourcePluginTickContext {
+	/** Engine tick info with audioTime and listener state. */
+	tick: AudioEngineTick
+	/** Current source-listener distance. */
+	distance: number
+	/** Source radial velocity projected onto listener-source axis. */
+	radialVelocity: number
+	/** Observer radial velocity projected onto listener-source axis. */
+	observerRadialVelocity: number
+	/** Distance gain value computed by current distance model. */
+	distanceGain: number
+	/** Whether panning mode uses a Three.js 3D panner node. */
+	useThreeDPanner: boolean
+	/** Mutable layer runtime state for plugin modulation. */
+	layers: SourcePluginLayerState[]
+}
+
+/** Source plugin contract for optional procedural audio behaviors. */
+export interface SourcePlugin {
+	/** Called once after layer configs are resolved and decoded. */
+	onInit?(ctx: { audioContext: AudioContext; layerConfigs: LayerConfig[] }): void
+	/** Called once per audio engine tick after core source processing. */
+	onTick?(ctx: SourcePluginTickContext): void
+	/** Called when the parent source is disposed. */
+	onDispose?(): void
+}
+
 /** Authoring surface for one procedural spatial emitter instance. */
 export interface SpatialSourceOptions {
 	/** Single-buffer source shortcut; bypassed when `layers` is defined. */
@@ -171,6 +213,8 @@ export interface SpatialSourceOptions {
 	reverb?: ReverbOptions
 	/** Distance-driven high-frequency air loss for more natural far-field tone. */
 	airAbsorption?: AirAbsorptionOptions
+	/** Optional source-level plugin chain for procedural runtime modulation. */
+	plugins?: SourcePlugin[]
 }
 
 /** Shared engine-level configuration applied across all registered sources. */
