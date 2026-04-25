@@ -1,11 +1,4 @@
-import {
-	AmbientLight,
-	BoxGeometry,
-	Group,
-	Mesh,
-	MeshBasicMaterial,
-	Vector3,
-} from 'three'
+import { AmbientLight, Group, Vector3 } from 'three'
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import loader from './loader'
 
@@ -25,9 +18,6 @@ export class TrackedObject extends Group {
 		const s = 0.04
 
 		this.scale.set(s, s, s)
-		this.rotation.x = Math.PI / 6
-
-		this.position.z = -9
 	}
 
 	updateVelocity(time: number) {

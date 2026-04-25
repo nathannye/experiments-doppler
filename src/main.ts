@@ -16,6 +16,7 @@ export default class App {
 		resizeScreen()
 		Camera.resize()
 		Renderer.resize()
+		Scene.resize(window.innerWidth, window.innerHeight)
 	}
 
 	init() {
@@ -24,7 +25,6 @@ export default class App {
 	}
 
 	render(time: number) {
-		Renderer.render(Scene, Camera)
 		Scene.render(time)
 	}
 }

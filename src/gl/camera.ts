@@ -9,7 +9,7 @@ class Camera extends PerspectiveCamera {
 	}
 
 	init() {
-		this.position.set(0, 0, 10)
+		this.position.set(0, 0, 0)
 	}
 
 	resize() {
@@ -18,4 +18,4 @@ class Camera extends PerspectiveCamera {
 	}
 }
 
-export default new Camera(75, screen.x / screen.y, 0.1, 1000)
+export default new Camera(75, screen.x / screen.y, 1, 1e8)

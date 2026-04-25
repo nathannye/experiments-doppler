@@ -342,7 +342,11 @@ export class SpatialSource {
 			const layerDistanceDepth = layer.config.distanceDepth ?? 1
 			const layerGain = layer.config.gain ?? 1
 			const distanceFactor = useThreeDPanner
-				? 1
+				? clamp(
+						0.25,
+						3,
+						Math.pow(Math.max(1e-4, distanceGainValue), layerDistanceDepth - 1),
+					)
 				: Math.pow(distanceGainValue, layerDistanceDepth)
 			layer.staticGain.gain.value = layerGain * distanceFactor
 		}
