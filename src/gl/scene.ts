@@ -124,9 +124,9 @@ class Scene extends ThreeScene {
 			},
 			doppler: {
 				enabled: true,
-				depth: 1.7,
-				smoothingSec: 0.5,
-				rateClamp: [0.75, 1.25],
+				depth: 2.25,
+				smoothingSec: 0.1,
+				rateClamp: [0.575, 1.5],
 			},
 			reverb: {
 				enabled: true,
@@ -146,12 +146,12 @@ class Scene extends ThreeScene {
 				{
 					id: 'low',
 					url: '/audio/turbine.mp3',
-					gain: 4,
+					gain: 1,
 					filter: {
 						type: 'lowpass',
 						frequency: 1000,
 					},
-					dopplerDepth: 0.85,
+					dopplerDepth: 3,
 					distanceDepth: 0.6,
 				},
 				{
@@ -172,7 +172,7 @@ class Scene extends ThreeScene {
 					gain: 0.6,
 					filter: {
 						type: 'highpass',
-						frequency: 5800,
+						frequency: 7100,
 					},
 					dopplerDepth: 1,
 					distanceDepth: 2.5,
