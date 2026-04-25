@@ -1,14 +1,12 @@
-import { SRGBColorSpace } from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
 import { ASSETS } from '../constants'
 
-// Change EXTENSION_TO_LOADER to an object of arrays
 const EXTENSION_TO_LOADER = {
-	texture: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
 	gltf: ['glb', 'gltf'],
-	lut: ['cube'],
 }
+
+type AssetSource = { url: string; name: string }
 
 function getLoaderKeyFromExtension(extension) {
 	for (const [loaderKey, extensions] of Object.entries(EXTENSION_TO_LOADER)) {
@@ -20,13 +18,18 @@ function getLoaderKeyFromExtension(extension) {
 }
 
 class LoadManager {
+	loaded: number
+	toLoad: number
+	items: Map<string, unknown>
+	loaders: Record<string, GLTFLoader>
+
 	constructor() {
 		this.loaded = 0
 		this.toLoad = Object.keys(ASSETS).length
 		this.items = new Map()
 
 		this.loaders = {
-			glb: new GLTFLoader(),
+			gltf: new GLTFLoader(),
 		}
 	}
 
@@ -36,9 +39,9 @@ class LoadManager {
 
 	onLoadItem() {}
 
-	createResourcePromise(source) {
+	createResourcePromise(source: AssetSource) {
 		return new Promise((resolve) => {
-			const extension = source.path.split('.').pop().toLowerCase()
+			const extension = source.url.split('.').pop().toLowerCase()
 			const loaderKey = getLoaderKeyFromExtension(extension)
 
 			if (!loaderKey) {
@@ -55,15 +58,11 @@ class LoadManager {
 			}
 
 			loader.load(
-				source.path,
+				source.url,
 				(file) => {
 					switch (loaderKey) {
-						case 'texture':
-							file.flipY = true
-							file.colorSpace = SRGBColorSpace
-							break
-						case 'lut':
-							file.name = source.name
+						case 'gltf':
+							file.scene.name = source.name
 							break
 					}
 
@@ -75,7 +74,7 @@ class LoadManager {
 				undefined,
 				(error) => {
 					console.log(error)
-					console.warn(`Loader error: ${source.path} failed to load`)
+					console.warn(`Loader error: ${source.url} failed to load`)
 					resolve(null)
 				},
 			)
@@ -85,11 +84,9 @@ class LoadManager {
 	async start() {
 		const promises = []
 
-		sources
-			.filter((source) => source.path)
-			.forEach((source) => {
-				promises.push(this.createResourcePromise(source))
-			})
+		Object.entries(ASSETS).forEach(([, asset]) => {
+			promises.push(this.createResourcePromise(asset))
+		})
 
 		return await Promise.all(promises)
 	}

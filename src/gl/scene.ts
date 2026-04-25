@@ -20,10 +20,13 @@ class Scene extends ThreeScene {
 	constructor() {
 		super()
 
-		// loader.start().then(() => {
-		// 	console.log('assets loaded')
-		this.init()
-		// })
+		this.loaded = false
+
+		loader.start().then(() => {
+			console.log('assets loaded')
+			this.loaded = true
+			this.init()
+		})
 	}
 
 	init() {
@@ -32,12 +35,12 @@ class Scene extends ThreeScene {
 
 		this.audioEngine = new AudioEngine({
 			listenerProvider: () => this.getListenerState(),
-			defaultReverbWet: 0.2,
+			defaultReverbWet: 0.65,
 		})
 
 		this.jetSource = new SpatialSource(this.audioEngine, {
 			loop: true,
-			baseGain: 1,
+			baseGain: 7,
 			distance: {
 				enabled: true,
 				model: 'inverse',
@@ -46,37 +49,37 @@ class Scene extends ThreeScene {
 			},
 			pan: {
 				enabled: true,
-				mode: 'hrtf3d',
+				mode: 'equalpower3d',
 				smoothing: 0.32,
 			},
 			doppler: {
 				enabled: true,
 				depth: 1.7,
-				smoothingSec: 0.08,
-				rateClamp: [0.75, 1.25],
+				smoothingSec: 0.5,
+				rateClamp: [0.9, 1.1],
 			},
 			reverb: {
 				enabled: true,
-				wet: 0.35,
+				wet: 0.12,
 				wetByDistance: true,
 			},
 			airAbsorption: {
 				enabled: true,
-				minDistance: 2,
-				maxDistance: 80,
-				minCutoffHz: 1800,
-				maxCutoffHz: 18000,
-				curve: 1.2,
-				smoothingSec: 0.12,
+				minDistance: 1,
+				maxDistance: 100,
+				minCutoffHz: 1200,
+				maxCutoffHz: 12000,
+				curve: 0.3,
+				smoothingSec: 0.1,
 			},
 			layers: [
 				{
 					id: 'low',
 					url: '/audio/turbine.mp3',
-					gain: 1.2,
+					gain: 1.9,
 					filter: {
 						type: 'lowpass',
-						frequency: 650,
+						frequency: 1200,
 					},
 					dopplerDepth: 0.85,
 					distanceDepth: 0.7,
@@ -84,25 +87,25 @@ class Scene extends ThreeScene {
 				{
 					id: 'mid',
 					url: '/audio/turbine.mp3',
-					gain: 0.6,
+					gain: 2.2,
 					filter: {
 						type: 'bandpass',
-						frequency: 1100,
-						Q: 0.7,
+						frequency: 2100,
+						Q: 0.2,
 					},
-					dopplerDepth: 1,
+					dopplerDepth: 3,
 					distanceDepth: 1,
 				},
 				{
 					id: 'high',
 					url: '/audio/turbine.mp3',
-					gain: 2,
+					gain: 1.1,
 					filter: {
 						type: 'highpass',
-						frequency: 3400,
+						frequency: 5800,
 					},
-					dopplerDepth: 1.8,
-					distanceDepth: 1.2,
+					dopplerDepth: 1,
+					distanceDepth: 2,
 				},
 			],
 		})
@@ -119,13 +122,14 @@ class Scene extends ThreeScene {
 	}
 
 	render(time: number) {
+		if (!this.loaded) return
 		const t = time * 0.001
 
-		const x = Math.sin(t / 2) * 10
-		const z = Math.sin(t) * -3
+		const x = Math.sin(t / 2) * 60
+		const z = Math.sin(t) * -2
 
-		this.trackedObject.position.x = x
-		this.trackedObject.position.z = z
+		// this.trackedObject.position.x = x
+		// this.trackedObject.position.z = z
 
 		this.trackedObject.updateVelocity(time)
 		this.jetSource.setKinematics({
@@ -136,6 +140,7 @@ class Scene extends ThreeScene {
 	}
 
 	getListenerState() {
+		if (!this.loaded) return
 		const timeSec = performance.now() * 0.001
 		const dt = this.prevTimeSec > 0 ? timeSec - this.prevTimeSec : 0
 

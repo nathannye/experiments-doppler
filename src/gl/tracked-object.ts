@@ -1,14 +1,33 @@
-import { BoxGeometry, Mesh, MeshBasicMaterial, Vector3 } from 'three'
+import {
+	AmbientLight,
+	BoxGeometry,
+	Group,
+	Mesh,
+	MeshBasicMaterial,
+	Vector3,
+} from 'three'
+import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import loader from './loader'
 
-export class TrackedObject extends Mesh {
+export class TrackedObject extends Group {
 	prevTimeSec = 0
 	prevPos = new Vector3()
 	velocity = new Vector3(0, 0, 0)
 
 	constructor() {
-		super(new BoxGeometry(1, 1, 1), new MeshBasicMaterial({ color: 0x00ff00 }))
+		super()
 
-		this.position.z = -4
+		const rafale = loader.getItem('rafale') as GLTF
+		const light = new AmbientLight(0xffffff, 5)
+		this.add(light)
+		this.add(rafale.scene)
+
+		const s = 0.04
+
+		this.scale.set(s, s, s)
+		this.rotation.x = Math.PI / 6
+
+		this.position.z = -9
 	}
 
 	updateVelocity(time: number) {

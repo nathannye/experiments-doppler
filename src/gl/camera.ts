@@ -9,7 +9,7 @@ class Camera extends PerspectiveCamera {
 	}
 
 	init() {
-		this.position.set(0, 0, 3)
+		this.position.set(0, 0, 10)
 	}
 
 	resize() {
