@@ -20,6 +20,11 @@ export interface WhoopPluginOptions {
 	maxMultiplier?: number
 	/** AudioParam smoothing time constant for modulation gain updates. */
 	smoothingSec?: number
+	/**
+	 * `tanh` scale for soft-limiting excursion from unity (higher → gentler saturation into min/max band).
+	 * Defaults to roughly `Math.max(depth * 0.5, 0.45)`.
+	 */
+	modulationSoftKnee?: number
 }
 
 class WhoopPlugin implements SourcePlugin {
@@ -39,7 +44,8 @@ class WhoopPlugin implements SourcePlugin {
 			recedingVelocityRef: options.recedingVelocityRef ?? 140,
 			minMultiplier: options.minMultiplier ?? 0.85,
 			maxMultiplier: options.maxMultiplier ?? 1.75,
-			smoothingSec: options.smoothingSec ?? 0.09,
+			smoothingSec: options.smoothingSec ?? 0.2,
+			modulationSoftKnee: options.modulationSoftKnee ?? 0,
 		}
 		this.phaseOffset = Math.random() * Math.PI * 2
 	}
@@ -53,7 +59,7 @@ class WhoopPlugin implements SourcePlugin {
 		}
 
 		const dt = Math.max(1e-4, ctx.tick.deltaSec)
-		const envAlpha = 1 - Math.exp(-dt / 0.35)
+		const envAlpha = 1 - Math.exp(-dt / 1.75)
 
 		const [nearDistance, farDistance] = this.options.distanceRange
 		const rawDistanceMix = clamp(
@@ -67,26 +73,37 @@ class WhoopPlugin implements SourcePlugin {
 		const rawReceding = clamp(
 			0,
 			1,
-			(-ctx.radialVelocity) / Math.max(1e-3, this.options.recedingVelocityRef),
+			-ctx.radialVelocity / Math.max(1e-3, this.options.recedingVelocityRef),
 		)
 		this.smoothedReceding += (rawReceding - this.smoothedReceding) * envAlpha
 		const recedingMix = this.smoothedReceding
 
 		const time = ctx.tick.audioTime
-		const rateJitter = Math.sin(time * 0.37 + this.phaseOffset) * this.options.jitterHz
+		const rateJitter =
+			Math.sin(time * 0.37 + this.phaseOffset) * this.options.jitterHz
 		const whoopRate = Math.max(0.05, this.options.rateHz + rateJitter)
-		const pulse = Math.abs(Math.sin((time + this.phaseOffset) * whoopRate * Math.PI * 2))
+		const pulse = Math.abs(
+			Math.sin((time + this.phaseOffset) * whoopRate * Math.PI * 2),
+		)
 		const bipolarPulse = pulse * 2 - 1
 		const emphasis = distanceMix * (0.2 + recedingMix * 0.8)
-		const modulation = 1 + this.options.depth * bipolarPulse * emphasis
-		const targetModulation = clamp(
-			this.options.minMultiplier,
-			this.options.maxMultiplier,
-			modulation,
-		)
+		const { minMultiplier, maxMultiplier, depth } = this.options
+		const excess = depth * bipolarPulse * emphasis
+		const maxUp = maxMultiplier - 1
+		const maxDown = 1 - minMultiplier
+		const knee =
+			this.options.modulationSoftKnee > 0
+				? this.options.modulationSoftKnee
+				: Math.max(depth * 0.5, 0.45)
+		const shaped =
+			excess >= 0
+				? maxUp * Math.tanh(excess / knee)
+				: -maxDown * Math.tanh(-excess / knee)
+		const targetModulation = 1 + shaped
 
 		const modAlpha = 1 - Math.exp(-dt / Math.max(1e-4, this.options.smoothingSec))
-		this.smoothedModulation += (targetModulation - this.smoothedModulation) * modAlpha
+		this.smoothedModulation +=
+			(targetModulation - this.smoothedModulation) * modAlpha
 
 		layer.gainNode.gain.value = layer.computedGain * this.smoothedModulation
 	}
